@@ -18,20 +18,16 @@ jobs:
         with:
           distribution: temurin
           java-version: 21
+          cache: 'maven' # Speeds up future builds
 
       - name: Build application
         run: mvn clean package -DskipTests
-
-      - name: Install Podman
-        run: |
-          sudo apt update
-          sudo apt install -y podman
 
       - name: Build Podman image
         run: |
           podman build -t product-service:latest .
 
-      - name: Stop existing container (if any)
+      - name: Stop and Remove existing container
         run: |
           podman stop product-service || true
           podman rm product-service || true
@@ -40,5 +36,11 @@ jobs:
         run: |
           podman run -d \
             --name product-service \
-            -p 8080:8080 \
+            -p 8081:8081 \
             product-service:latest
+
+      - name: Verify Health
+        run: |
+          sleep 10
+          podman ps
+          podman logs product-service --tail 20
