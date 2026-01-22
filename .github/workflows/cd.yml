@@ -1,4 +1,4 @@
-name: CD - Product Service 
+name: CD - Product Service
 
 on:
   push:
@@ -18,28 +18,25 @@ jobs:
         with:
           distribution: temurin
           java-version: 21
-          cache: 'maven' # Speeds up future builds
+          cache: maven
 
       - name: Build application
         run: mvn clean package -DskipTests
 
+      - name: Verify JAR
+        run: ls -l target
+
       - name: Build Podman image
-        run: |
-          podman build -t product-service:latest .
+        run: podman build -t product-service:latest .
 
-      - name: Stop and Remove existing container
-        run: |
-          podman stop product-service || true
-          podman rm product-service || true
-
-      - name: Run container
+      - name: Run container (validation only)
         run: |
           podman run -d \
             --name product-service \
             -p 8081:8081 \
             product-service:latest
 
-      - name: Verify Health
+      - name: Verify container
         run: |
           sleep 10
           podman ps

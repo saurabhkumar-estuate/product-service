@@ -94,7 +94,7 @@
     </dependencies>
 
     <build>
-		  <finalName>product-service</finalName>
+		<finalName>product-service</finalName>
 
         <plugins>
             <plugin>
