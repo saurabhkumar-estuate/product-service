@@ -5,6 +5,10 @@ on:
     branches:
       - main
 
+permissions:
+  contents: read
+  packages: write   # REQUIRED for GHCR
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
@@ -21,28 +25,20 @@ jobs:
           cache: maven
 
       - name: Build application
-        # This will create target/product-service.jar
         run: mvn clean package -DskipTests
 
-      - name: Verify JAR existence
-        run: ls -l target/product-service.jar
+      - name: Login to GHCR
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | podman login ghcr.io \
+            -u ${{ github.actor }} --password-stdin
 
       - name: Build Podman image
-        run: podman build -t product-service:latest .
-
-      - name: Run container (validation only)
         run: |
-          # We use -e to ignore config server failure just for this quick test
-          podman run -d \
-            --name product-service \
-            -p 8081:8081 \
-            -e "SPRING_CLOUD_CONFIG_ENABLED=false" \
-            product-service:latest
+          podman build -t ghcr.io/${{ github.actor }}/product-service:latest .
 
-      - name: Verify container health
+      - name: Push image to GHCR
         run: |
-          sleep 15
-          podman ps
-          podman logs product-service
-          # Check if the app is actually responding on 8081
-          curl -v http://localhost:8081/actuator/health || echo "App not ready yet"
+          podman push ghcr.io/${{ github.actor }}/product-service:latest
+
+      - name: Verify image
+        run: podman images
